@@ -1,0 +1,28 @@
+# Sensitive
+.env
+*.env
+
+# Dataset (too large for git)
+data/*.csv
+data/*.jsonl
+data/*.json
+data/*.parquet
+
+# Vector DB (rebuilt from data)
+chroma_db/
+*.chroma/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.pyc
+
+# Results (can be regenerated)
+results/*.json
