@@ -77,43 +77,68 @@ Evaluated across **200 hand-curated Amazon support interactions** spanning 8 dis
 
 ## 🏗️ System Architecture
 
+```mermaid
+flowchart TD
+    subgraph Ingest["1. Inbound Ingestion"]
+        A["Incoming Customer Tweet"] --> B["Text Cleaning & Normalization"]
+    end
+
+    subgraph Intelligence["2. Classification & Governance"]
+        B --> C["Intent Classifier (Groq LPU)<br/>openai/gpt-oss-120b"]
+        C --> D{"Escalation Engine"}
+        
+        D -- "Security / Fraud / Legal Trigger" --> E["Escalate to Human Specialist<br/>Priority: Critical / High"]
+        D -- "Confidence < 0.55" --> E
+        D -- "Standard Safe Intent" --> F["Approved for Auto-Handling"]
+    end
+
+    subgraph RAG["3. Semantic Knowledge Retrieval"]
+        B --> G["ChromaDB Vector Store"]
+        G -- "all-MiniLM-L6-v2 Embeddings" --> H["Top-3 Historical Resolutions<br/>From @AmazonHelp Corpus"]
+    end
+
+    subgraph Gen["4. Grounded Synthesis"]
+        F --> I["Reply Generator (Groq LPU)"]
+        H --> I
+        E --> I
+        I --> J["Grounded Brand Tweet Reply<br/>(≤280 Chars, Empathy, No-PII)"]
+    end
+
+    classDef primary fill:#f97316,stroke:#ea580c,stroke-width:2px,color:#fff;
+    classDef safety fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff;
+    classDef success fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff;
+    classDef storage fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#fff;
+
+    class C,I primary;
+    class E safety;
+    class F success;
+    class G,H storage;
 ```
-                       [Incoming Customer Tweet]
-                                   │
-                                   ▼
-             ┌───────────────────────────────────────────┐
-             │   1. Intent Classification (Groq LPU)     │
-             │   Model: openai/gpt-oss-120b              │
-             │   Output: Intent, Confidence, Reasoning   │
-             └─────────────────────┬─────────────────────┘
-                                   │
-                                   ▼
-             ┌───────────────────────────────────────────┐
-             │   2. Hybrid Escalation Engine             │
-             │   • Deterministic Security/Fraud Regex    │
-             │   • Legal / Regulatory Threat Triggers    │
-             │   • Repeated Agent Failure Heuristics     │
-             │   • Confidence Gating (< 0.55 Threshold)  │
-             └─────────────────────┬─────────────────────┘
-                                   │
-                                   ▼
-             ┌───────────────────────────────────────────┐
-             │   3. Semantic RAG Knowledge Retriever     │
-             │   • ChromaDB Persistent Vector Store      │
-             │   • Embeddings: all-MiniLM-L6-v2 (Local)  │
-             │   • Top-k Historical Resolved Cases       │
-             └─────────────────────┬─────────────────────┘
-                                   │
-                                   ▼
-             ┌───────────────────────────────────────────┐
-             │   4. Grounded Reply Generator             │
-             │   • Twitter ≤280 Character Compliance     │
-             │   • Brand Voice & Empathy Conditioning    │
-             │   • No-Public-PII Governance Guarantee    │
-             └─────────────────────┬─────────────────────┘
-                                   │
-                                   ▼
-                [Structured Turn Output & Routing]
+
+### 🚦 Decision & Escalation Flowchart
+
+```mermaid
+graph TD
+    Start(["Customer Tweet"]) --> CheckSec{"Rule 1: Security or Fraud?"}
+    CheckSec -- Yes --> EscCrit["Escalate: CRITICAL<br/>Suspected compromise / unauthorized charge"]
+    CheckSec -- No --> CheckLeg{"Rule 2: Legal / Regulatory Threat?"}
+    
+    CheckLeg -- Yes --> EscHigh1["Escalate: HIGH<br/>Lawyer, BBB, police mention"]
+    CheckLeg -- No --> CheckFrust{"Rule 3: Repeated Prior Support Failure?"}
+    
+    CheckFrust -- Yes --> EscHigh2["Escalate: HIGH<br/>Multiple agent transfers / hang-ups"]
+    CheckFrust -- No --> CheckPolicy{"Rule 4: Intent Policy Guardrail?"}
+    
+    CheckPolicy -- "account_security or service_complaint" --> EscHigh3["Escalate: HIGH<br/>Mandatory human category"]
+    CheckPolicy -- Other Intents --> CheckConf{"Rule 5: Classifier Confidence ≥ 0.55?"}
+    
+    CheckConf -- No --> EscLow["Escalate: LOW<br/>Human triage fallback"]
+    CheckConf -- Yes --> AutoHandle["AUTO-HANDLE<br/>Synthesize RAG-grounded response"]
+
+    classDef alert fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b;
+    classDef ok fill:#dcfce7,stroke:#10b981,stroke-width:2px,color:#065f46;
+    class EscCrit,EscHigh1,EscHigh2,EscHigh3,EscLow alert;
+    class AutoHandle ok;
 ```
 
 ---
