@@ -212,8 +212,9 @@ Evaluated on **{len(records)} hand-curated Amazon support interactions** across 
 
 ### 3. LLM-as-a-Judge Calibration & Agreement
 - **Judge Model:** `openai/gpt-oss-120b` on Groq LPU
+- **Note on Human Ratings:** Human scores are *proxy-simulated* from ground-truth labels (correct intent + ROUGE > 0.15 = Pass; missed critical escalation = Fail). They are **not real human annotations**, so κ is a methodological lower-bound, not a human study.
 - **Sample Evaluated:** {agreement['sample_size']} interactions
-- **Inter-Annotator Agreement (Cohen's Kappa):** **κ = {agreement['cohen_kappa']}** (Substantial / Strong Agreement)
+- **Inter-Annotator Agreement (Cohen's Kappa):** **κ = {agreement['cohen_kappa']}** ({'Substantial Agreement' if agreement['cohen_kappa'] >= 0.6 else 'Moderate Agreement' if agreement['cohen_kappa'] >= 0.4 else 'Fair Agreement — note: simulated human proxy; run `tests/` for validated logic'})
 - **Raw Percentage Agreement:** {agreement['raw_percentage_agreement']*100:.1f}%
 - **Mean Absolute Error (MAE):** {agreement['mean_absolute_error']} points on 1-5 scale
 """
